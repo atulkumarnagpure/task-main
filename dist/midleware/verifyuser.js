@@ -3,19 +3,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.userratelimiterbyIp = void 0;
+exports.userratelimiterbyIp = exports.userratelimiter = void 0;
+exports.rateLimiter = rateLimiter;
 const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
-// export const rateLimiter = async (header: any) => {
-//     console.log(header?.userid, "-----------header");
-//     const data: any = await mysqldb.query(`SELECT * FROM usercount where userid=${header?.userid}`)
-//     console.log(data[0][0]?.requestCount, "-----------count------");
-//     // await mysqldb.mysqldb
-// }
-const userratelimiter = (0, express_rate_limit_1.default)({
+exports.userratelimiter = (0, express_rate_limit_1.default)({
     windowMs: 60 * 1000,
     max: 5,
     keyGenerator: (req) => {
-        console.log(req, "--------req------");
+        console.log(req?.users, "--------req------");
         return req?.users?.id;
     },
     handler: (req, res) => {
@@ -31,7 +26,6 @@ exports.userratelimiterbyIp = (0, express_rate_limit_1.default)({
     windowMs: 60 * 1000,
     max: 20,
     keyGenerator: (req) => {
-        console.log(req, "--------req------");
         return req?.req?.ip;
     },
     handler: (req, res) => {
@@ -43,4 +37,43 @@ exports.userratelimiterbyIp = (0, express_rate_limit_1.default)({
     standardHeaders: true,
     legacyHeaders: false
 });
-exports.default = userratelimiter;
+const USER_LIMIT = 5;
+const IP_LIMIT = 20;
+const WINDOW_MS = 60 * 1000;
+const userLimits = new Map();
+const ipLimits = new Map();
+function rateLimiter(req, res, next) {
+    const userId = req.header("userId");
+    const ip = req.headers["x-forwarded-for"]?.split(",")[0] || req.ip;
+    if (!userId)
+        return res.status(400).json({ message: "UserId is required.." });
+    const now = Date.now();
+    const userData = userLimits.get(userId);
+    console.log(userData, "------------userData--------");
+    if (!userData || now - userData.startTime > WINDOW_MS) {
+        userLimits.set(userId, { count: 1, startTime: now });
+    }
+    else {
+        userData.count++;
+        if (userData.count > USER_LIMIT) {
+            return res.status(400).json({
+                success: false,
+                message: "User rate limit exceeded (5 requests per minute)"
+            });
+        }
+    }
+    const ipData = ipLimits.get(ip);
+    if (!ipData || now - ipData.startTime > WINDOW_MS) {
+        ipLimits.set(ip, { count: 1, startTime: now });
+    }
+    else {
+        ipData.count++;
+        if (ipData.count > IP_LIMIT) {
+            return res.status(400).json({
+                success: false,
+                message: "IP rate limit exceeded (20 requests per minute)"
+            });
+        }
+    }
+    next();
+}
