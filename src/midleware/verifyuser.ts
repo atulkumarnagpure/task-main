@@ -64,11 +64,13 @@ export function rateLimiter(req: Request, res: Response, next: NextFunction) {
     const now = Date.now()
     const userData = userLimits.get(userId);
     console.log(userData, "------------userData--------");
-    if (!userData || now - userData.startTime > WINDOW_MS) {
+    if (!userData || now - userData?.startTime > WINDOW_MS) {
+        console.log("------------1");
         userLimits.set(userId, { count: 1, startTime: now });
     } else {
+        console.log('--0');
         userData.count++;
-        if (userData.count > USER_LIMIT) {
+        if (userData?.count > USER_LIMIT) {
             return res.status(400).json({
                 success: false,
                 message: "User rate limit exceeded (5 requests per minute)"
