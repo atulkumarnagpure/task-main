@@ -1,6 +1,5 @@
 import mysql from 'mysql2/promise'
 
-
 export const mysqldb = mysql.createPool({
     host: 'localhost',
     user: "root",
