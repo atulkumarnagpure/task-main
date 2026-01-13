@@ -160,14 +160,14 @@ export async function rateLimiter(
 
         const userAllowed = await checkLimit(`user:${userId}`, USER_LIMIT, now);
         if (!userAllowed) {
-            return res.status(429).json({
+            return res.status(400).json({
                 message: "User rate limit exceeded (5/min)"
             });
         }
 
         const ipAllowed = await checkLimit(`ip:${ip}`, IP_LIMIT, now);
         if (!ipAllowed) {
-            return res.status(429).json({
+            return res.status(400).json({
                 message: "IP rate limit exceeded (20/min)"
             });
         }
